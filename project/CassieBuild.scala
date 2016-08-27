@@ -35,7 +35,7 @@ object CassieBuild extends Build with StandardLibraries {
     id = "cassie",
     base = file("."),
     settings = Project.defaultSettings
-  ).aggregate(core, customer)
+  ).aggregate(core, customer, service, test)
 
 
   lazy val core = Project(
@@ -65,5 +65,41 @@ object CassieBuild extends Build with StandardLibraries {
       ++ Libs.phantom
       ++ Libs.commonsCustomer
   ).dependsOn(core)
+
+
+  lazy val service = Project(
+    id = "cassie-service",
+    base = file("service"),
+    settings = Project.defaultSettings
+      ++ sharedSettings
+  )
+  .enablePlugins(JavaAppPackaging)
+  .settings(
+    name := "cassie-service",
+    libraryDependencies ++= Seq(
+    ) ++ Libs.microservice
+      ++ Libs.commonsEvents
+      ++ Libs.microservice,
+    makeScript <<= (stage in Universal, stagingDirectory in Universal, baseDirectory in ThisBuild, streams) map { (_, dir, cwd, streams) =>
+      var path = dir / "bin" / "cassie-service"
+      sbt.Process(Seq("ln", "-sf", path.toString, "cassie-service"), cwd) ! streams.log
+    }
+  ).dependsOn(test)
+
+
+  lazy val test = Project(
+    id = "cassie-test",
+    base = file("test"),
+    settings = Project.defaultSettings
+      ++ sharedSettings
+  )
+  .enablePlugins(JavaAppPackaging)
+  .settings(
+    name := "cassie-test",
+    libraryDependencies ++= Seq(
+    ) ++ Libs.microservice
+      ++ Libs.commonsEvents
+      ++ Libs.microservice
+  ).dependsOn()
 
 }
