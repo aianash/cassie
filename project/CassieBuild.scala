@@ -12,6 +12,7 @@ import com.typesafe.sbt.packager.docker.{Cmd, ExecCmd, CmdLike}
 
 import com.aianonymous.sbt.standard.libraries.StandardLibraries
 
+
 object CassieBuild extends Build with StandardLibraries {
 
   def sharedSettings = Seq(
@@ -34,6 +35,35 @@ object CassieBuild extends Build with StandardLibraries {
     id = "cassie",
     base = file("."),
     settings = Project.defaultSettings
-  ).aggregate()
+  ).aggregate(core, customer)
+
+
+  lazy val core = Project(
+    id = "cassie-core",
+    base = file("core"),
+    settings = Project.defaultSettings
+      ++ sharedSettings
+  ).settings(
+    name := "cassie-core",
+    libraryDependencies ++= Seq(
+    ) ++ Libs.commonsCustomer
+  )
+
+
+  lazy val customer = Project(
+    id = "cassie-customer",
+    base = file("customer"),
+    settings = Project.defaultSettings
+      ++ sharedSettings
+  )
+  .enablePlugins(JavaAppPackaging)
+  .settings(
+    name := "cassie-customer",
+    libraryDependencies ++= Seq(
+    ) ++ Libs.akka
+      ++ Libs.microservice
+      ++ Libs.phantom
+      ++ Libs.commonsCustomer
+  ).dependsOn(core)
 
 }
