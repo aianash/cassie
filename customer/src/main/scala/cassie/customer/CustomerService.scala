@@ -19,7 +19,11 @@ class CustomerService extends Actor with ActorLogging {
   datastore.init()
 
   def receive = {
-    case InsertPageTags(tags) => datastore.insertTags(tags) pipeTo sender()
+    case InsertPageTags(tags) =>
+      datastore.insertTags(tags) pipeTo sender()
+
+    case FetchPageTags(tid, pid) =>
+      datastore.getTagsFor(tid, pid) pipeTo sender()
   }
 
 }

@@ -30,4 +30,12 @@ abstract class Tags extends TagsTable with RootConnector {
           .value(_.sectionId, pagetags.sectionId)
           .value(_.tags, pagetags.tags)
 
+  def getTagsFor(tokenId: Long, pageId: Long) =
+    select.where(_.tokenId eqs tokenId)
+          .and(_.pageId eqs pageId)
+
+  def deleteTagsFor(tokenId: Long, pageId: Long) =
+    delete.where(_.tokenId eqs tokenId)
+          .and(_.pageId eqs pageId)
+
 }

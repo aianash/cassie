@@ -27,11 +27,27 @@ class TagsDatastore(customerConnector: CustomerConnector) extends TagsDatabase(c
   }
 
   def insertTags(tags: Seq[PageTags]) = {
-    val batch =
+    val ids = tags map { tag =>
+      (tag.tokenId, tag.pageId)
+    } distinct
+
+    val deletebatch =
+      ids.foldLeft (Batch.logged) { (b, i) =>
+        b.add(Tags.deleteTagsFor(i._1, i._2))
+      }
+
+    val addbatch =
       tags.foldLeft (Batch.logged) { (b, i) =>
         b.add(Tags.insertTags(i))
       }
-    batch.future().map(_ => true)
+
+    for {
+      _ <- deletebatch.future()
+      _ <- addbatch.future()
+    } yield true
   }
+
+  def getTagsFor(tokenId: Long, pageId: Long) =
+    Tags.getTagsFor(tokenId, pageId).fetch()
 
 }
