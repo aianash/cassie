@@ -1,6 +1,6 @@
 package cassie.customer
 
-import akka.actor.{Actor, ActorLogging}
+import akka.actor.{Actor, ActorLogging, Props}
 import akka.pattern.pipe
 
 import cassie.core.protocols.customer._
@@ -19,7 +19,13 @@ class CustomerService extends Actor with ActorLogging {
   datastore.init()
 
   def receive = {
-    case InsertTags(tags) => datastore.insertTags(tags) pipeTo sender()
+    case InsertPageTags(tags) => datastore.insertTags(tags) pipeTo sender()
   }
+
+}
+
+object CustomerService {
+
+  def props = Props(classOf[CustomerService])
 
 }

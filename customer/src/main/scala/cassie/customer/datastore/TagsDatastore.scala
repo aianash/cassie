@@ -26,6 +26,12 @@ class TagsDatastore(customerConnector: CustomerConnector) extends TagsDatabase(c
     Await.result(creation, 2 seconds)
   }
 
-  def insertTags(tags: PageTags) = Tags.insertTags(tags).future().map(_ => true)
+  def insertTags(tags: Seq[PageTags]) = {
+    val batch =
+      tags.foldLeft (Batch.logged) { (b, i) =>
+        b.add(Tags.insertTags(i))
+      }
+    batch.future().map(_ => true)
+  }
 
 }

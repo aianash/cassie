@@ -11,9 +11,11 @@ import cassie.service.components._
 
 
 object CassieService {
+
   def main(args: Array[String]) {
     val config = ConfigFactory.load("cassie")
     val system = ActorSystem(config.getString("cassie.actorSystem"), config)
-    Microservice(system).start(IndexedSeq(TestComponent))
+    Microservice(system).start(IndexedSeq(CustomerComponent))
   }
+
 }

@@ -15,6 +15,8 @@ import com.aianonymous.sbt.standard.libraries.StandardLibraries
 
 object CassieBuild extends Build with StandardLibraries {
 
+  val makeScript = TaskKey[Unit]("make-script", "to generate bash file")
+
   def sharedSettings = Seq(
     organization := "com.aianonymous",
     version := "0.1.0",
@@ -35,7 +37,7 @@ object CassieBuild extends Build with StandardLibraries {
     id = "cassie",
     base = file("."),
     settings = Project.defaultSettings
-  ).aggregate(core, customer, service, test)
+  ).aggregate(core, customer, service)
 
 
   lazy val core = Project(
@@ -46,7 +48,8 @@ object CassieBuild extends Build with StandardLibraries {
   ).settings(
     name := "cassie-core",
     libraryDependencies ++= Seq(
-    ) ++ Libs.commonsCustomer
+    ) ++ Libs.commonsCore
+      ++ Libs.commonsCustomer
   )
 
 
@@ -84,22 +87,6 @@ object CassieBuild extends Build with StandardLibraries {
       var path = dir / "bin" / "cassie-service"
       sbt.Process(Seq("ln", "-sf", path.toString, "cassie-service"), cwd) ! streams.log
     }
-  ).dependsOn(test)
-
-
-  lazy val test = Project(
-    id = "cassie-test",
-    base = file("test"),
-    settings = Project.defaultSettings
-      ++ sharedSettings
-  )
-  .enablePlugins(JavaAppPackaging)
-  .settings(
-    name := "cassie-test",
-    libraryDependencies ++= Seq(
-    ) ++ Libs.microservice
-      ++ Libs.commonsEvents
-      ++ Libs.microservice
-  ).dependsOn()
+  ).dependsOn(customer)
 
 }
