@@ -43,7 +43,9 @@ class CustomerDatastore(customerConnector: CustomerConnector) extends CustomerDa
       }
 
     val addbatch =
-      tags.foldLeft (Batch.logged) { (b, i) =>
+      (tags filter { tag =>
+        !tag.tags.isEmpty
+      }).foldLeft (Batch.logged) { (b, i) =>
         b.add(Tags.insertTags(i))
       }
 
@@ -59,6 +61,7 @@ class CustomerDatastore(customerConnector: CustomerConnector) extends CustomerDa
   /////////////////////////////////////////////////////////////////////
   ////////////////////////////// Domains //////////////////////////////
   /////////////////////////////////////////////////////////////////////
+
   def insertDomain(domain: Domain) =
     Domains.insertDomain(domain).future().map(_ => true)
 
@@ -68,6 +71,7 @@ class CustomerDatastore(customerConnector: CustomerConnector) extends CustomerDa
   /////////////////////////////////////////////////////////////////////
   ///////////////////////////// Page URLs /////////////////////////////
   /////////////////////////////////////////////////////////////////////
+
   def insertPageUrl(pageUrl: PageURL) =
     PageURLs.insertPageUrl(pageUrl).future().map(_ => true)
 
