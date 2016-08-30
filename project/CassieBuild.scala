@@ -15,7 +15,7 @@ import com.aianonymous.sbt.standard.libraries.StandardLibraries
 
 object CassieBuild extends Build with StandardLibraries {
 
-  val makeScript = TaskKey[Unit]("make-script", "to generate bash file")
+  lazy val makeScript = TaskKey[Unit]("make-script", "make bash script in local directory to run main classes")
 
   def sharedSettings = Seq(
     organization := "com.aianonymous",
@@ -37,7 +37,7 @@ object CassieBuild extends Build with StandardLibraries {
     id = "cassie",
     base = file("."),
     settings = Project.defaultSettings
-  ).aggregate(core, customer, service)
+  ).aggregate(core, customer, service, events)
 
 
   lazy val core = Project(
@@ -50,6 +50,7 @@ object CassieBuild extends Build with StandardLibraries {
     libraryDependencies ++= Seq(
     ) ++ Libs.commonsCore
       ++ Libs.commonsCustomer
+      ++ Libs.commonsEvents
   )
 
 
@@ -88,5 +89,26 @@ object CassieBuild extends Build with StandardLibraries {
       sbt.Process(Seq("ln", "-sf", path.toString, "cassie-service"), cwd) ! streams.log
     }
   ).dependsOn(customer)
+
+
+  lazy val events = Project(
+    id = "cassie-events",
+    base = file("events"),
+    settings = Project.defaultSettings ++
+      sharedSettings
+    )
+  .enablePlugins(JavaAppPackaging)
+  .settings(
+      name := "cassie-events",
+      libraryDependencies ++= Seq(
+    ) ++ Libs.scalaz
+      ++ Libs.akka
+      ++ Libs.msgpack
+      ++ Libs.commonsEvents,
+      makeScript <<= (stage in Universal, stagingDirectory in Universal, baseDirectory in ThisBuild, streams) map { (_, dir, cwd, streams) =>
+      var path = dir / "bin" / "cassie-events"
+      sbt.Process(Seq("ln", "-sf", path.toString, "cassie-events"), cwd) ! streams.log
+    }
+  ).dependsOn(core)
 
 }
