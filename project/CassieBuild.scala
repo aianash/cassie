@@ -15,6 +15,8 @@ import com.aianonymous.sbt.standard.libraries.StandardLibraries
 
 object CassieBuild extends Build with StandardLibraries {
 
+  val makeScript = TaskKey[Unit]("make-script", "to generate bash file")
+
   def sharedSettings = Seq(
     organization := "com.aianonymous",
     version := "0.1.0",
@@ -35,7 +37,7 @@ object CassieBuild extends Build with StandardLibraries {
     id = "cassie",
     base = file("."),
     settings = Project.defaultSettings
-  ).aggregate(core, customer)
+  ).aggregate(core, customer, service)
 
 
   lazy val core = Project(
@@ -46,7 +48,8 @@ object CassieBuild extends Build with StandardLibraries {
   ).settings(
     name := "cassie-core",
     libraryDependencies ++= Seq(
-    ) ++ Libs.commonsCustomer
+    ) ++ Libs.commonsCore
+      ++ Libs.commonsCustomer
   )
 
 
@@ -65,5 +68,25 @@ object CassieBuild extends Build with StandardLibraries {
       ++ Libs.phantom
       ++ Libs.commonsCustomer
   ).dependsOn(core)
+
+
+  lazy val service = Project(
+    id = "cassie-service",
+    base = file("service"),
+    settings = Project.defaultSettings
+      ++ sharedSettings
+  )
+  .enablePlugins(JavaAppPackaging)
+  .settings(
+    name := "cassie-service",
+    libraryDependencies ++= Seq(
+    ) ++ Libs.microservice
+      ++ Libs.commonsEvents
+      ++ Libs.microservice,
+    makeScript <<= (stage in Universal, stagingDirectory in Universal, baseDirectory in ThisBuild, streams) map { (_, dir, cwd, streams) =>
+      var path = dir / "bin" / "cassie-service"
+      sbt.Process(Seq("ln", "-sf", path.toString, "cassie-service"), cwd) ! streams.log
+    }
+  ).dependsOn(customer)
 
 }
