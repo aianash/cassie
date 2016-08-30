@@ -33,21 +33,16 @@ class CustomerDatastore(customerConnector: CustomerConnector) extends CustomerDa
   /////////////////////////////////////////////////////////////////////
 
   def insertTags(tags: Seq[PageTags]) = {
-    val ids = tags map { tag =>
-      (tag.tokenId, tag.pageId)
-    } distinct
+    val ids = tags.map(x => (x.tokenId, x.pageId)).distinct
 
     val deletebatch =
-      ids.foldLeft (Batch.logged) { (b, i) =>
-        b.add(Tags.deleteTagsFor(i._1, i._2))
+      ids.foldLeft (Batch.logged) { case (batch, (tokenId, pageId)) =>
+        batch add Tags.deleteTagsFor(tokenId, pageId)
       }
 
     val addbatch =
-      (tags filter { tag =>
-        !tag.tags.isEmpty
-      }).foldLeft (Batch.logged) { (b, i) =>
-        b.add(Tags.insertTags(i))
-      }
+      tags.filter(!_.tags.isEmpty)
+          .foldLeft(Batch.logged) { (b, i) => b add Tags.insertTags(i) }
 
     for {
       _ <- deletebatch.future()
