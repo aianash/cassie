@@ -38,4 +38,5 @@ abstract class Sessions extends SessionsTable with RootConnector {
       .and(_.pageId eqs pageId)
       .and(_.startTime gte startTime)
       .and(_.startTime lte endTime)
+
 }

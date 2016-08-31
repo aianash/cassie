@@ -15,6 +15,7 @@ import cassie.events.EventSettings
 import cassie.events.connector.EventConnector
 import cassie.events.database.EventDatabase
 
+
 class EventDatastore(eventConnector: EventConnector) extends EventDatabase(eventConnector.connector) {
 
   /**
@@ -27,9 +28,8 @@ class EventDatastore(eventConnector: EventConnector) extends EventDatabase(event
         _ <- Events.create.ifNotExists.future()
       } yield true
 
-    Await.result(creation, 5 seconds)
+    Await.result(creation, 2 seconds)
   }
-
 
   def insertEvents(eventsSession: EventsSession, eventVersion: Int): Future[Boolean] = {
     val tokenId = eventsSession.tokenId
@@ -44,7 +44,6 @@ class EventDatastore(eventConnector: EventConnector) extends EventDatabase(event
 
       val batch = pageEvent.events.flatMap(event => createInsertEvent(eventsSession, pageEvent, event, eventVersion))
                                   .foldLeft(Batch.logged)(_ add _)
-
       insertStatus +=
         (for {
           _ <- Sessions.insertSession(tokenId, pageId, startTime, sessionId, aianId).future()
@@ -57,25 +56,25 @@ class EventDatastore(eventConnector: EventConnector) extends EventDatabase(event
     Future.sequence(insertStatus).map(_.foldLeft(true)(_ && _))
   }
 
-
   def getEvents(tokenId: Long, pageId: Long, startTime: Long, endTime: Long): Future[Seq[PageEvents]] = {
     Events.getEventsFor(tokenId, pageId, startTime, endTime).fetch().flatMap { eventTupleList =>
       if(!eventTupleList.isEmpty) {
-        val eventMap = eventTupleList.foldLeft(Map.empty[(Long, Long), ArrayBuffer[Option[TrackingEvent]]])({ (m, et) =>
-            m.getOrElseUpdate((et._1, et._2), ArrayBuffer.empty[Option[TrackingEvent]]) += et._3; m
-          })
+        val pageEvents = eventTupleList.foldLeft(Map.empty[(Long, Long), ArrayBuffer[TrackingEvent]]) {
+          case (m, (sid, sttime, Some(value))) =>
+            m.getOrElseUpdate((sid, sttime), ArrayBuffer.empty[TrackingEvent]) += value
+            m
+          case (m, _) => m
+        }.foldLeft(ArrayBuffer.empty[PageEvents]) {
+          case (pge, ((sid, sttime), value)) =>
+            pge += PageEvents(sid, pageId, sttime, value)
+        }
 
-        val pageEvents = eventMap.foldLeft(ArrayBuffer.empty[PageEvents])({ (pge, kv) =>
-            pge += PageEvents(kv._1._1, pageId, kv._1._2, kv._2.flatten)
-          })
-
-        Future.successful(Seq(pageEvents: _*))
+        Future.successful(pageEvents)
       } else {
         Future.successful(Seq.empty[PageEvents])
       }
     }
   }
-
 
   private def createInsertEvent(session: EventsSession, pgevents: PageEvents, event: TrackingEvent, eventVersion: Int) =
     (event match {

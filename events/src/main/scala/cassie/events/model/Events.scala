@@ -6,6 +6,7 @@ import com.websudos.phantom.dsl._
 
 import aianonymous.commons.events._
 
+
 sealed class EventsTable extends CassandraTable[Events, (Long, Long, Option[TrackingEvent])] {
 
   override def tableName = "events"

@@ -8,6 +8,7 @@ import cassie.core.protocols.events._
 import cassie.events.datastore.EventDatastore
 import cassie.events.connector.EventConnector
 
+
 class EventService extends Actor with ActorLogging {
 
   import context.dispatcher
