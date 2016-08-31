@@ -1,6 +1,6 @@
 package cassie.events
 
-import akka.actor.{Actor, ActorLogging}
+import akka.actor.{Actor, ActorLogging, Props}
 import akka.pattern.pipe
 
 import cassie.core.protocols.events._
@@ -25,5 +25,11 @@ class EventService extends Actor with ActorLogging {
     case GetEvents(tokenId, pageId, startTime, endTime)  => datastore.getEvents(tokenId, pageId, startTime, endTime) pipeTo sender()
 
   }
+
+}
+
+object EventService {
+
+  def props = Props(classOf[EventService])
 
 }

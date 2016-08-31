@@ -88,7 +88,7 @@ object CassieBuild extends Build with StandardLibraries {
       var path = dir / "bin" / "cassie-service"
       sbt.Process(Seq("ln", "-sf", path.toString, "cassie-service"), cwd) ! streams.log
     }
-  ).dependsOn(customer)
+  ).dependsOn(customer, events)
 
 
   lazy val events = Project(

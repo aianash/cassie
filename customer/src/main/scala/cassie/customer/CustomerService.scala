@@ -39,17 +39,24 @@ class CustomerService extends Actor with ActorLogging {
     case GetDomain(name) =>
       datastore.getDomainFor(name) pipeTo sender()
 
-    case GetPageURL(url, tokenId) =>
-      datastore.getPageUrl(url).flatMap {
+    case GetOrCreatePageId(url, tokenId) =>
+      val urlstr = url.getHost + ":" + url.getPort + url.getPath
+      datastore.getPageUrl(urlstr).flatMap {
         _.EITHER {
-          url => Future.successful(url)
+          pageurl => Future.successful(pageurl.pageId)
         } OR {
           implicit val timeout = Timeout(2 seconds)
-          val urlF = (uuid ?= NextId("pageurl")) map { id => PageURL(tokenId, id.get, url) }
-          urlF flatMap { url =>
-            datastore.insertPageUrl(url).map(_ => url)
+          val pageurlF = (uuid ?= NextId("pageurl")) map { id => PageURL(tokenId, id.get, urlstr) }
+          pageurlF flatMap { pageurl =>
+            datastore.insertPageUrl(pageurl).map(_ => pageurl.pageId)
           }
         }
+      } pipeTo sender()
+
+    case GetPageId(url) =>
+      val urlstr = url.getHost + ":" + url.getPort + url.getPath
+      datastore.getPageUrl(urlstr) map { urlO =>
+        urlO.map(_.pageId)
       } pipeTo sender()
   }
 
