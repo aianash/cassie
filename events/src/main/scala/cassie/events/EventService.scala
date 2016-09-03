@@ -20,9 +20,14 @@ class EventService extends Actor with ActorLogging {
 
   def receive = {
 
-    case InsertEvents(eventsSession, eventVersion) => datastore.insertEvents(eventsSession, eventVersion) pipeTo sender()
+    case InsertEvents(eventsSession, eventVersion) =>
+      datastore.insertEvents(eventsSession, eventVersion) pipeTo sender()
 
-    case GetEvents(tokenId, pageId, startTime, endTime)  => datastore.getEvents(tokenId, pageId, startTime, endTime) pipeTo sender()
+    case GetEvents(tokenId, pageId, startTime, endTime) =>
+      datastore.getEvents(tokenId, pageId, startTime, endTime) pipeTo sender()
+
+    case GetEventsCount(tokenId, pageId, startTime, endTime) =>
+      datastore.getEventsCount(tokenId, pageId, startTime, endTime) pipeTo sender()
 
   }
 
