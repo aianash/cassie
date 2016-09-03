@@ -55,4 +55,10 @@ abstract class Events extends EventsTable with RootConnector {
       .and(_.startTime gte startTime)
       .and(_.startTime lte endTime)
 
+  def getEventsCountFor(tokenId: Long, pageId: Long, startTime: Long, endTime: Long) =
+    select.count.where(_.tokenId eqs tokenId)
+      .and(_.pageId eqs pageId)
+      .and(_.startTime gte startTime)
+      .and(_.startTime lte endTime)
+
 }

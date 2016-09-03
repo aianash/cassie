@@ -76,6 +76,9 @@ class EventDatastore(eventConnector: EventConnector) extends EventDatabase(event
     }
   }
 
+  def getEventsCount(tokenId: Long, pageId: Long, startTime: Long, endTime: Long): Future[Long] =
+    Events.getEventsCountFor(tokenId, pageId, startTime, endTime).one().map(_.getOrElse(0L))
+
   private def createInsertEvent(session: EventsSession, pgevents: PageEvents, event: TrackingEvent, eventVersion: Int) =
     (event match {
       case pfv: PageFragmentView =>
