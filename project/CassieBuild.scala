@@ -12,6 +12,8 @@ import com.typesafe.sbt.packager.docker.{Cmd, ExecCmd, CmdLike}
 
 import com.aianonymous.sbt.standard.libraries.StandardLibraries
 
+import com.typesafe.sbt.packager.docker.DockerPlugin
+
 
 object CassieBuild extends Build with StandardLibraries {
 
@@ -77,9 +79,21 @@ object CassieBuild extends Build with StandardLibraries {
     settings = Project.defaultSettings
       ++ sharedSettings
   )
-  .enablePlugins(JavaAppPackaging)
+  .enablePlugins(JavaAppPackaging, DockerPlugin)
   .settings(
     name := "cassie-service",
+    mainClass in Compile := Some("cassie.service.CassieService"),
+    dockerExposedPorts := Seq(4848),
+    dockerEntrypoint := Seq("sh", "-c",
+                            """export CASSIE_HOST=`ifdata -pa eth0` && echo $CASSIE_HOST && \
+                            |  export CASSIE_PORT=4848 && \
+                            |  bin/cassie-service -Dakka.cluster.roles.0=customer-service -Dakka.cluster.roles.1=event-service $*""".stripMargin
+                            ),
+    dockerRepository := Some("aianonymous"),
+    dockerBaseImage := "aianonymous/baseimage",
+    dockerCommands ++= Seq(
+      Cmd("USER", "root")
+    ),
     libraryDependencies ++= Seq(
     ) ++ Libs.microservice
       ++ Libs.commonsEvents
