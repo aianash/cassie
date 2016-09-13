@@ -39,7 +39,7 @@ object CassieBuild extends Build with StandardLibraries {
     id = "cassie",
     base = file("."),
     settings = Project.defaultSettings
-  ).aggregate(core, customer, service, events)
+  ).aggregate(core, customer, service, events, mlmodels)
 
 
   lazy val core = Project(
@@ -102,7 +102,7 @@ object CassieBuild extends Build with StandardLibraries {
       var path = dir / "bin" / "cassie-service"
       sbt.Process(Seq("ln", "-sf", path.toString, "cassie-service"), cwd) ! streams.log
     }
-  ).dependsOn(customer, events)
+  ).dependsOn(customer, events, mlmodels)
 
 
   lazy val events = Project(
@@ -122,6 +122,25 @@ object CassieBuild extends Build with StandardLibraries {
       makeScript <<= (stage in Universal, stagingDirectory in Universal, baseDirectory in ThisBuild, streams) map { (_, dir, cwd, streams) =>
       var path = dir / "bin" / "cassie-events"
       sbt.Process(Seq("ln", "-sf", path.toString, "cassie-events"), cwd) ! streams.log
+    }
+  ).dependsOn(core)
+
+
+  lazy val mlmodels = Project(
+    id = "cassie-mlmodels",
+    base = file("mlmodels"),
+    settings = Project.defaultSettings ++
+      sharedSettings
+    )
+  .enablePlugins(JavaAppPackaging)
+  .settings(
+      name := "cassie-mlmodels",
+      libraryDependencies ++= Seq(
+    ) ++ Libs.scalaz
+      ++ Libs.akka,
+      makeScript <<= (stage in Universal, stagingDirectory in Universal, baseDirectory in ThisBuild, streams) map { (_, dir, cwd, streams) =>
+      var path = dir / "bin" / "cassie-mlmodels"
+      sbt.Process(Seq("ln", "-sf", path.toString, "cassie-mlmodels"), cwd) ! streams.log
     }
   ).dependsOn(core)
 
