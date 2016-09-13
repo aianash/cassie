@@ -1,11 +1,11 @@
-package cassie.mlmodels.connector
+package cassie.modelparams.connector
 
 import com.websudos.phantom.connectors.ContactPoint
 
-import cassie.mlmodels.MLModelSettings
+import cassie.modelparams.ModelParamSettings
 
 
-class MLModelConnector(settings: MLModelSettings) {
+class ModelParamConnector(settings: ModelParamSettings) {
 
   val keySpace = settings.CassandraKeyspace
 

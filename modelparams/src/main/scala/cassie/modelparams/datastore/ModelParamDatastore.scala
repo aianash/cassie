@@ -1,16 +1,16 @@
-package cassie.mlmodels.datastore
+package cassie.modelparams.datastore
 
 import scala.concurrent.duration._
 import scala.concurrent.{Future, Await}
 
 import com.websudos.phantom.dsl._
 
-import cassie.mlmodels.MLModelSettings
-import cassie.mlmodels.connector.MLModelConnector
-import cassie.mlmodels.database.MLModelDatabase
+import cassie.modelparams.ModelParamSettings
+import cassie.modelparams.connector.ModelParamConnector
+import cassie.modelparams.database.ModelParamDatabase
 
 
-class MLModelDatastore(mlModelConnector: MLModelConnector) extends MLModelDatabase(mlModelConnector.connector) {
+class ModelParamDatastore(modelParamConnector: ModelParamConnector) extends ModelParamDatabase(modelParamConnector.connector) {
 
   /**
    * To initialize cassandra tables

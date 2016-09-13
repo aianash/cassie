@@ -39,7 +39,7 @@ object CassieBuild extends Build with StandardLibraries {
     id = "cassie",
     base = file("."),
     settings = Project.defaultSettings
-  ).aggregate(core, customer, service, events, mlmodels)
+  ).aggregate(core, customer, service, events, modelparams)
 
 
   lazy val core = Project(
@@ -87,7 +87,7 @@ object CassieBuild extends Build with StandardLibraries {
     dockerEntrypoint := Seq("sh", "-c",
                             """export CASSIE_HOST=`ifdata -pa eth0` && echo $CASSIE_HOST && \
                             |  export CASSIE_PORT=4848 && \
-                            |  bin/cassie-service -Dakka.cluster.roles.0=customer-service -Dakka.cluster.roles.1=event-service -Dakka.cluster.roles.2=mlmodel-service $*""".stripMargin
+                            |  bin/cassie-service -Dakka.cluster.roles.0=customer-service -Dakka.cluster.roles.1=event-service -Dakka.cluster.roles.2=modelparam-service $*""".stripMargin
                             ),
     dockerRepository := Some("aianonymous"),
     dockerBaseImage := "aianonymous/baseimage",
@@ -102,7 +102,7 @@ object CassieBuild extends Build with StandardLibraries {
       var path = dir / "bin" / "cassie-service"
       sbt.Process(Seq("ln", "-sf", path.toString, "cassie-service"), cwd) ! streams.log
     }
-  ).dependsOn(customer, events, mlmodels)
+  ).dependsOn(customer, events, modelparams)
 
 
   lazy val events = Project(
@@ -126,21 +126,21 @@ object CassieBuild extends Build with StandardLibraries {
   ).dependsOn(core)
 
 
-  lazy val mlmodels = Project(
-    id = "cassie-mlmodels",
-    base = file("mlmodels"),
+  lazy val modelparams = Project(
+    id = "cassie-modelparams",
+    base = file("modelparams"),
     settings = Project.defaultSettings ++
       sharedSettings
     )
   .enablePlugins(JavaAppPackaging)
   .settings(
-      name := "cassie-mlmodels",
+      name := "cassie-modelparams",
       libraryDependencies ++= Seq(
     ) ++ Libs.scalaz
       ++ Libs.akka,
       makeScript <<= (stage in Universal, stagingDirectory in Universal, baseDirectory in ThisBuild, streams) map { (_, dir, cwd, streams) =>
-      var path = dir / "bin" / "cassie-mlmodels"
-      sbt.Process(Seq("ln", "-sf", path.toString, "cassie-mlmodels"), cwd) ! streams.log
+      var path = dir / "bin" / "cassie-modelparams"
+      sbt.Process(Seq("ln", "-sf", path.toString, "cassie-modelparams"), cwd) ! streams.log
     }
   ).dependsOn(core)
 

@@ -1,4 +1,4 @@
-package cassie.mlmodels.model
+package cassie.modelparams.model
 
 import com.websudos.phantom.dsl._
 
