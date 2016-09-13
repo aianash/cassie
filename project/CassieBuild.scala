@@ -39,7 +39,7 @@ object CassieBuild extends Build with StandardLibraries {
     id = "cassie",
     base = file("."),
     settings = Project.defaultSettings
-  ).aggregate(core, customer, service, events)
+  ).aggregate(core, customer, service, events, modelparams)
 
 
   lazy val core = Project(
@@ -87,7 +87,7 @@ object CassieBuild extends Build with StandardLibraries {
     dockerEntrypoint := Seq("sh", "-c",
                             """export CASSIE_HOST=`ifdata -pa eth0` && echo $CASSIE_HOST && \
                             |  export CASSIE_PORT=4848 && \
-                            |  bin/cassie-service -Dakka.cluster.roles.0=customer-service -Dakka.cluster.roles.1=event-service $*""".stripMargin
+                            |  bin/cassie-service -Dakka.cluster.roles.0=customer-service -Dakka.cluster.roles.1=event-service -Dakka.cluster.roles.2=modelparam-service $*""".stripMargin
                             ),
     dockerRepository := Some("aianonymous"),
     dockerBaseImage := "aianonymous/baseimage",
@@ -102,7 +102,7 @@ object CassieBuild extends Build with StandardLibraries {
       var path = dir / "bin" / "cassie-service"
       sbt.Process(Seq("ln", "-sf", path.toString, "cassie-service"), cwd) ! streams.log
     }
-  ).dependsOn(customer, events)
+  ).dependsOn(customer, events, modelparams)
 
 
   lazy val events = Project(
@@ -122,6 +122,25 @@ object CassieBuild extends Build with StandardLibraries {
       makeScript <<= (stage in Universal, stagingDirectory in Universal, baseDirectory in ThisBuild, streams) map { (_, dir, cwd, streams) =>
       var path = dir / "bin" / "cassie-events"
       sbt.Process(Seq("ln", "-sf", path.toString, "cassie-events"), cwd) ! streams.log
+    }
+  ).dependsOn(core)
+
+
+  lazy val modelparams = Project(
+    id = "cassie-modelparams",
+    base = file("modelparams"),
+    settings = Project.defaultSettings ++
+      sharedSettings
+    )
+  .enablePlugins(JavaAppPackaging)
+  .settings(
+      name := "cassie-modelparams",
+      libraryDependencies ++= Seq(
+    ) ++ Libs.scalaz
+      ++ Libs.akka,
+      makeScript <<= (stage in Universal, stagingDirectory in Universal, baseDirectory in ThisBuild, streams) map { (_, dir, cwd, streams) =>
+      var path = dir / "bin" / "cassie-modelparams"
+      sbt.Process(Seq("ln", "-sf", path.toString, "cassie-modelparams"), cwd) ! streams.log
     }
   ).dependsOn(core)
 
