@@ -87,7 +87,7 @@ object CassieBuild extends Build with StandardLibraries {
     dockerEntrypoint := Seq("sh", "-c",
                             """export CASSIE_HOST=`ifdata -pa eth0` && echo $CASSIE_HOST && \
                             |  export CASSIE_PORT=4848 && \
-                            |  bin/cassie-service -Dakka.cluster.roles.0=customer-service -Dakka.cluster.roles.1=event-service $*""".stripMargin
+                            |  bin/cassie-service -Dakka.cluster.roles.0=customer-service -Dakka.cluster.roles.1=event-service -Dakka.cluster.roles.2=mlmodel-service $*""".stripMargin
                             ),
     dockerRepository := Some("aianonymous"),
     dockerBaseImage := "aianonymous/baseimage",
