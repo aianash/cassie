@@ -32,9 +32,9 @@ class WebPagesByURLTable extends CassandraTable[WebPagesByURL, WebPage] {
 abstract class WebPagesByURL extends WebPagesByURLTable with RootConnector {
 
   def insertWebPage(webPage: WebPage) =
-    insert.value(_.tokenId, webPage.tokenId)
+    insert.value(_.url, webPage.url.toString)
+          .value(_.tokenId, webPage.tokenId)
           .value(_.pageId, webPage.pageId)
-          .value(_.url, webPage.url.toString)
           .value(_.name, webPage.name)
           .value(_.host, webPage.url.host)
           .value(_.port, webPage.url.port)
