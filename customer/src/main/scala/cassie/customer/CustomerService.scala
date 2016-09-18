@@ -79,7 +79,7 @@ class CustomerService extends Actor with ActorLogging {
 
   private def getUrlString(url: URL) =
     url.getHost +
-    (if(url.getPort != -1) url.getPort else "") +
+    (if(url.getPort != -1) ":" + url.getPort else "") +
     url.getPath
 
 }
