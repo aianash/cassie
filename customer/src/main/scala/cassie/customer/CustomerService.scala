@@ -35,7 +35,7 @@ class CustomerService extends Actor with ActorLogging {
     case InsertPageTags(tags) =>
       datastore.insertTags(tags) pipeTo sender()
 
-    case FetchPageTags(tid, pid) =>
+    case GetPageTags(tid, pid) =>
       datastore.getTagsFor(tid, pid) pipeTo sender()
 
     case GetDomain(name) =>
