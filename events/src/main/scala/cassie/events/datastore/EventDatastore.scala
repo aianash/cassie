@@ -45,10 +45,7 @@ class EventDatastore(eventConnector: EventConnector) extends EventDatabase(event
       val batch = pageEvent.events.flatMap(event => createInsertEvent(eventsSession, pageEvent, event, eventVersion))
                                   .foldLeft(Batch.logged)(_ add _)
       insertStatus +=
-        (for {
-          _ <- Sessions.insertSession(tokenId, pageId, startTime, sessionId, aianId).future()
-          _ <- batch.future()
-        } yield true) recover {
+        batch.future() map (_ => true) recover {
           case ex: Exception => false
         }
     }
@@ -78,6 +75,9 @@ class EventDatastore(eventConnector: EventConnector) extends EventDatabase(event
 
   def getEventsCount(tokenId: Long, pageId: Long, startTime: Long, endTime: Long): Future[Long] =
     Events.getEventsCountFor(tokenId, pageId, startTime, endTime).one().map(_.getOrElse(0L))
+
+  def insertSession(tokenId: Long, pageId: Long, startTime: Long, sessionId: Long, aianId: Long): Future[Boolean] =
+    Sessions.insertSession(tokenId, pageId, startTime, sessionId, aianId).future().map(_ => true)
 
   private def createInsertEvent(session: EventsSession, pgevents: PageEvents, event: TrackingEvent, eventVersion: Int) =
     (event match {

@@ -3,6 +3,8 @@ package cassie.customer
 import scala.concurrent.duration._
 import scala.concurrent.Future
 
+import java.net.URL
+
 import akka.actor.{Actor, ActorLogging, Props}
 import akka.pattern.pipe
 import akka.util.Timeout
@@ -40,7 +42,7 @@ class CustomerService extends Actor with ActorLogging {
       datastore.getDomainFor(name) pipeTo sender()
 
     case GetOrCreatePageId(url, tokenId) =>
-      val urlstr = url.getHost + ":" + url.getPort + url.getPath
+      val urlstr = getUrlString(url)
       datastore.getPageUrl(urlstr).flatMap {
         _.EITHER {
           pageurl => Future.successful(pageurl.pageId)
@@ -54,10 +56,14 @@ class CustomerService extends Actor with ActorLogging {
       } pipeTo sender()
 
     case GetPageId(url) =>
-      val urlstr = url.getHost + ":" + url.getPort + url.getPath
+      val urlstr = getUrlString(url)
       datastore.getPageUrl(urlstr) map { urlO =>
         urlO.map(_.pageId)
       } pipeTo sender()
+
+    case GetPageURL(url) =>
+      val urlstr = getUrlString(url)
+      datastore.getPageUrl(urlstr) pipeTo sender()
   }
 
   implicit class OptionEitherOr[T](opt: Option[T]) {
@@ -70,6 +76,11 @@ class CustomerService extends Actor with ActorLogging {
           }
       }
   }
+
+  private def getUrlString(url: URL) =
+    url.getHost +
+    (if(url.getPort != -1) url.getPort else "") +
+    url.getPath
 
 }
 
