@@ -9,6 +9,6 @@ class CustomerDatabase(override val connector: KeySpaceDef) extends Database(con
 
   object Tags extends Tags with connector.Connector
   object Domains extends Domains with connector.Connector
-  object PageURLs extends PageURLs with connector.Connector
+  object WebPagesByURL extends WebPagesByURL with connector.Connector
 
 }
