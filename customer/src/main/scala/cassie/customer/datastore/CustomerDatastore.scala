@@ -5,6 +5,7 @@ import scala.concurrent.Await
 
 import com.websudos.phantom.dsl._
 
+import aianonymous.commons.core.PageURL
 import aianonymous.commons.customer._
 
 import cassie.customer.CustomerSettings
@@ -22,7 +23,7 @@ class CustomerDatastore(customerConnector: CustomerConnector) extends CustomerDa
       for {
         _ <- Tags.create.ifNotExists.future()
         _ <- Domains.create.ifNotExists.future()
-        _ <- PageURLs.create.ifNotExists.future()
+        _ <- WebPagesByURL.create.ifNotExists.future()
       } yield true
 
     Await.result(creation, 2 seconds)
@@ -67,10 +68,10 @@ class CustomerDatastore(customerConnector: CustomerConnector) extends CustomerDa
   ///////////////////////////// Page URLs /////////////////////////////
   /////////////////////////////////////////////////////////////////////
 
-  def insertPageUrl(pageUrl: PageURL) =
-    PageURLs.insertPageUrl(pageUrl).future().map(_ => true)
+  def insertWebPage(webPages: WebPage) =
+    WebPagesByURL.insertWebPage(webPages).future().map(_ => true)
 
-  def getPageUrl(url: String) =
-    PageURLs.getPageUrlFor(url).one()
+  def getWebPage(url: PageURL) =
+    WebPagesByURL.getWebPageFor(url).one()
 
 }

@@ -11,7 +11,7 @@ import akka.util.Timeout
 
 import aianonymous.commons.core.protocols.Implicits._
 import aianonymous.commons.core.services.{UUIDGenerator, NextId}
-import aianonymous.commons.customer.{Domain, PageURL}
+import aianonymous.commons.customer.{Domain, WebPage}
 
 import cassie.core.protocols.customer._
 
@@ -41,29 +41,26 @@ class CustomerService extends Actor with ActorLogging {
     case GetDomain(name) =>
       datastore.getDomainFor(name) pipeTo sender()
 
-    case GetOrCreatePageId(url, tokenId) =>
-      val urlstr = getUrlString(url)
-      datastore.getPageUrl(urlstr).flatMap {
+    case GetOrCreatePageId(url, tokenId, name) =>
+      datastore.getWebPage(url).flatMap {
         _.EITHER {
-          pageurl => Future.successful(pageurl.pageId)
+          webpage => Future.successful(webpage.pageId)
         } OR {
           implicit val timeout = Timeout(2 seconds)
-          val pageurlF = (uuid ?= NextId("pageurl")) map { id => PageURL(tokenId, id.get, urlstr) }
-          pageurlF flatMap { pageurl =>
-            datastore.insertPageUrl(pageurl).map(_ => pageurl.pageId)
+          val webpageF = (uuid ?= NextId("webpage")) map { id => WebPage(tokenId, id.get, url, name) }
+          webpageF flatMap { webpage =>
+            datastore.insertWebPage(webpage).map(_ => webpage.pageId)
           }
         }
       } pipeTo sender()
 
     case GetPageId(url) =>
-      val urlstr = getUrlString(url)
-      datastore.getPageUrl(urlstr) map { urlO =>
-        urlO.map(_.pageId)
+      datastore.getWebPage(url) map { webpageO =>
+        webpageO.map(_.pageId)
       } pipeTo sender()
 
-    case GetPageURL(url) =>
-      val urlstr = getUrlString(url)
-      datastore.getPageUrl(urlstr) pipeTo sender()
+    case GetWebPage(url) =>
+      datastore.getWebPage(url) pipeTo sender()
   }
 
   implicit class OptionEitherOr[T](opt: Option[T]) {
@@ -76,11 +73,6 @@ class CustomerService extends Actor with ActorLogging {
           }
       }
   }
-
-  private def getUrlString(url: URL) =
-    url.getHost +
-    (if(url.getPort != -1) ":" + url.getPort else "") +
-    url.getPath
 
 }
 
