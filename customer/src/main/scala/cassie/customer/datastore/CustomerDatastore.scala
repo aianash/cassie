@@ -24,6 +24,8 @@ class CustomerDatastore(customerConnector: CustomerConnector) extends CustomerDa
         _ <- Tags.create.ifNotExists.future()
         _ <- Domains.create.ifNotExists.future()
         _ <- WebPagesByURL.create.ifNotExists.future()
+        _ <- WebPagesByID.create.ifNotExists.future()
+        _ <- Instances.create.ifNotExists.future()
       } yield true
 
     Await.result(creation, 2 seconds)
@@ -68,10 +70,29 @@ class CustomerDatastore(customerConnector: CustomerConnector) extends CustomerDa
   ///////////////////////////// Page URLs /////////////////////////////
   /////////////////////////////////////////////////////////////////////
 
-  def insertWebPage(webPages: WebPage) =
-    WebPagesByURL.insertWebPage(webPages).future().map(_ => true)
+  def insertWebPage(webPages: WebPage) = {
+    for {
+      _ <- WebPagesByURL.insertWebPage(webPages).future()
+      _ <- WebPagesByID.insertWebPage(webPages).future()
+    } yield true
+  }
 
   def getWebPage(url: PageURL) =
     WebPagesByURL.getWebPageFor(url).one()
+
+  def getWebPageByID(tokenId: Long, pageId: Long) =
+    WebPagesByID.getWebPageFor(tokenId, pageId).one()
+
+  ////////////////////////////////////////////////////////////////////
+  /////////////////////////// Settings ///////////////////////////////
+  ////////////////////////////////////////////////////////////////////
+
+  def insertSchedule(instances: Seq[Instance]) = {
+    val batch = instances.foldLeft(Batch.logged) {(b, i) => b add Instances.insertInstance(i)}
+    batch.future().map(_ => true)
+  }
+
+  def getSchedule(tokenId: Long) =
+    Instances.getInstance(tokenId).fetch()
 
 }

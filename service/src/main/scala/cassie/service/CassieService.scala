@@ -15,7 +15,7 @@ object CassieService {
   def main(args: Array[String]) {
     val config = ConfigFactory.load("cassie")
     val system = ActorSystem(config.getString("cassie.actorSystem"), config)
-    Microservice(system).start(IndexedSeq(CustomerComponent, EventComponent, ModelParamComponent))
+    Microservice(system).start(IndexedSeq(CustomerComponent, EventComponent, ModelParamComponent, PageStatComponent))
   }
 
 }

@@ -61,7 +61,18 @@ class CustomerService extends Actor with ActorLogging {
 
     case GetWebPage(url) =>
       datastore.getWebPage(url) pipeTo sender()
+
+    case GetWebPageById(tokenId, pageId) =>
+      datastore.getWebPageByID(tokenId, pageId) pipeTo sender()
+
+    case InsertSchedule(tokenId, instances) =>
+      datastore.insertSchedule(instances) pipeTo sender()
+
+    case GetSchedule(tokenId) =>
+      datastore.getSchedule(tokenId) pipeTo sender()
+
   }
+
 
   implicit class OptionEitherOr[T](opt: Option[T]) {
     def EITHER[R](either: T => R) =
