@@ -1,22 +1,12 @@
 package cassie.pagestats.datastore
 
-import scala.collection.mutable.ArrayBuffer
-
 import scala.concurrent.duration._
 import scala.concurrent.{Future, Await}
 
-import org.joda.time.Duration
-
-import akka.actor.ActorRef
-import akka.util.Timeout
-
 import com.websudos.phantom.dsl._
 
-import aianonymous.commons.core.protocols.Implicits._
 import aianash.commons.behavior.Behavior
 
-import cassie.core.constructs._
-import cassie.core.protocols.customer._
 import cassie.customer.CustomerService
 
 import cassie.pagestats.PageStatSettings
@@ -53,21 +43,14 @@ class PageStatDatastore(pageStatConnector: PageStatConnector) extends PageStatDa
   def updatePageValueStats(tokenId: Long, pageId: Long, instanceId: Int, avgDwellTime: Long) =
     PageValueStats.updateDwellTime(tokenId, pageId, instanceId, avgDwellTime).future().map(_ => true)
 
-  def getPageStats(tokenId: Long, pageId: Long, instanceId: Int, customerActor: ActorRef) = {
+  def getPageStats(tokenId: Long, pageId: Long, instanceId: Int) = {
     for {
       pageCountStatO <- PageCountStats.getPageCountStats(tokenId, pageId, instanceId).one()
       pageValueStatO <- PageValueStats.getPageValueStats(tokenId, pageId, instanceId).one()
-      prevPageRefs <- getPrevPageReferrals(tokenId, pageId, instanceId, customerActor)
-      nextPageRefs <- getNextPageReferrals(tokenId, pageId, instanceId, customerActor)
+      prevPageReferrals <- getPrevPageReferrals(tokenId, pageId, instanceId)
+      nextPageReferrals <- getNextPageReferrals(tokenId, pageId, instanceId)
     } yield {
-      val avgDwellTime = new Duration(pageValueStatO.get.avgDwellTime)
-      PageStats(tokenId, pageId, instanceId, Behavior.Stats(
-        Behavior.PageViews(pageCountStatO.get.pageViews),
-        Behavior.Visitors(pageCountStatO.get.totalVisitors),
-        Behavior.Visitors(pageCountStatO.get.newVisitors),
-        avgDwellTime,
-        prevPageRefs,
-        nextPageRefs))
+      (pageCountStatO, pageValueStatO, prevPageReferrals, nextPageReferrals)
     }
   }
 
@@ -99,35 +82,12 @@ class PageStatDatastore(pageStatConnector: PageStatConnector) extends PageStatDa
     } yield true
   }
 
-  private def getPrevPageReferrals(tokenId: Long, pageId: Long, instanceId: Int, customerActor: ActorRef): Future[Seq[Behavior.Referral]] = {
-    val pageReferralF =  PrevPageReferrals.getRefCount(tokenId, pageId, instanceId).fetch()
-    getReferralList(tokenId, pageReferralF, customerActor)
+  private def getPrevPageReferrals(tokenId: Long, pageId: Long, instanceId: Int) = {
+    PrevPageReferrals.getRefCount(tokenId, pageId, instanceId).fetch()
   }
 
-  private def getNextPageReferrals(tokenId: Long, pageId: Long, instanceId: Int, customerActor: ActorRef): Future[Seq[Behavior.Referral]] = {
-    val pageReferralF = NextPageReferrals.getRefCount(tokenId, pageId, instanceId).fetch()
-    getReferralList(tokenId, pageReferralF, customerActor)
-  }
-
-  private def getReferralList(tokenId: Long, pageReferralF: Future[Seq[PageReferral]], customerActor: ActorRef) = {
-    pageReferralF.flatMap {refTupleList =>
-      if(!refTupleList.isEmpty) {
-        var referrals = ArrayBuffer.empty[Future[Behavior.Referral]]
-        for(pageReferral <- refTupleList) {
-          val refPageId = pageReferral.refPageId
-          val refCount = pageReferral.refCount
-
-          implicit val timeout = Timeout(1 seconds)
-          val webPageF = (customerActor ?= GetWebPageById(tokenId, refPageId))
-          referrals += webPageF.map {webPage =>
-            Behavior.Referral(refPageId, webPage.get.name, refCount, webPage.get.url)
-          }
-        }
-        Future.sequence(referrals)
-      } else {
-        Future.successful(Seq.empty[Behavior.Referral])
-      }
-    }
+  private def getNextPageReferrals(tokenId: Long, pageId: Long, instanceId: Int) = {
+    NextPageReferrals.getRefCount(tokenId, pageId, instanceId).fetch()
   }
 
 }

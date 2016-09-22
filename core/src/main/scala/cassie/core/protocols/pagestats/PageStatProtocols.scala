@@ -2,7 +2,7 @@ package cassie.core.protocols.pagestats
 
 import aianonymous.commons.core.protocols._, Implicits._
 
-import cassie.core.constructs._
+import cassie.core.structures._
 
 
 sealed trait PageStatProtocols

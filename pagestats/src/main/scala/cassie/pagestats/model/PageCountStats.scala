@@ -2,7 +2,15 @@ package cassie.pagestats.model
 
 import com.websudos.phantom.dsl._
 
-import cassie.core.constructs._
+
+case class PageCountStat(
+  tokenId       : Long,
+  pageId        : Long,
+  instanceId    : Long,
+  pageViews     : Long,
+  totalVisitors : Long,
+  newVisitors   : Long
+)
 
 sealed class PageCountStatsTable extends CassandraTable[PageCountStats, PageCountStat] {
 

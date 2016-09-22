@@ -2,7 +2,13 @@ package cassie.pagestats.model
 
 import com.websudos.phantom.dsl._
 
-import cassie.core.constructs._
+
+case class PageValueStat(
+  tokenId       : Long,
+  pageId        : Long,
+  instanceId    : Long,
+  avgDwellTime  : Long
+)
 
 sealed class PageValueStatsTable extends CassandraTable[PageValueStats, PageValueStat] {
 
