@@ -2,12 +2,11 @@ package cassie.core.protocols.events
 
 import aianonymous.commons.core.protocols._, Implicits._
 
-import aianonymous.commons.events._
+import aianash.commons.events._
 
 
-sealed trait EventProtocol
+sealed trait EventProtocols
 
-case class InsertEvents(eventsSession: EventsSession, eventVersion: Int) extends EventProtocol with Replyable[Boolean]
-case class GetEvents(tokenId: Long, pageId: Long, startTime: Long, endTime: Long) extends EventProtocol with Replyable[Seq[PageEvents]]
-case class GetEventsCount(tokenId: Long, pageId: Long, startTime: Long, endTime: Long) extends EventProtocol with Replyable[Long]
-case class InsertSession(tokenId: Long, pageId: Long, startTime: Long, sessionId: Long, aianId: Long) extends EventProtocol with Replyable[Boolean]
+case class InsertEvents(eventSession: EventSession, eventVersion: Int) extends EventProtocols with Replyable[Boolean]
+case class GetEvents(tokenId: TokenId) extends EventProtocols with Replyable[Seq[EventSession]]
+case class GetEventsCount(tokenId: TokenId) extends EventProtocols with Replyable[Long]

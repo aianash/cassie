@@ -4,7 +4,7 @@ import java.nio.ByteBuffer
 
 import com.websudos.phantom.dsl._
 
-import aianonymous.commons.events._
+import aianash.commons.events._
 
 
 sealed class EventsTable extends CassandraTable[Events, (Long, Long, Option[TrackingEvent])] {
@@ -13,52 +13,42 @@ sealed class EventsTable extends CassandraTable[Events, (Long, Long, Option[Trac
 
   // primary key
   object tokenId extends LongColumn(this) with PartitionKey[Long]
-  object pageId extends LongColumn(this) with PartitionKey[Long]
-  object startTime extends LongColumn(this) with ClusteringOrder[Long] with Ascending
+  object aianId extends LongColumn(this) with ClusteringOrder[Long] with Ascending
   object sessionId extends LongColumn(this) with ClusteringOrder[Long] with Ascending
   object eventId extends LongColumn(this) with ClusteringOrder[Long] with Ascending
 
   // data
   object eventType extends IntColumn(this)
-  object eventValue extends BlobColumn(this)
   object eventVersion extends IntColumn(this)
+  object eventValue extends BlobColumn(this)
 
   def fromRow(row: Row) = {
-    val sessId = sessionId(row)
-    val stTime = startTime(row)
+    val evType = eventType(row)
+    val evVersion = eventVersion(row)
+    val evValue = eventValue(row)
+    val value = TrackingEvent.decode(evValue.array(), evType.toChar, evVersion)
 
-    val etype = eventType(row)
-    val evalue = eventValue(row)
-    val eversion = eventVersion(row)
-    val value = TrackingEvent.decode(evalue.array(), etype.toChar, eversion)
-
-    (sessId, stTime, value)
+    (aianId(row), sessionId(row), value)
   }
 
 }
 
 abstract class Events extends EventsTable with RootConnector {
 
-  def insertEvent(tokenId: Long, pageId: Long, startTime: Long, sessionId: Long, eventId: Long, eventType: Int, eventValue: ByteBuffer, eventVersion: Int) =
+  def insertEvent(tokenId: Long, aianId: Long, sessionId: Long, eventId: Long,
+    eventType: Int, eventVersion: Int, eventValue: ByteBuffer) =
     insert.value(_.tokenId, tokenId)
-      .value(_.pageId, pageId)
-      .value(_.startTime, startTime)
+      .value(_.aianId, aianId)
       .value(_.sessionId, sessionId)
       .value(_.eventId, eventId)
       .value(_.eventType, eventType)
-      .value(_.eventValue, eventValue)
       .value(_.eventVersion, eventVersion)
+      .value(_.eventValue, eventValue)
 
-  def getEventsFor(tokenId: Long, pageId: Long, startTime: Long, endTime: Long) =
+  def getEventsFor(tokenId: Long) =
     select.where(_.tokenId eqs tokenId)
-      .and(_.pageId eqs pageId)
-      .and(_.startTime gte startTime)
-      .and(_.startTime lte endTime)
 
-  def getEventsCountFor(tokenId: Long, pageId: Long, startTime: Long, endTime: Long) =
+  def getEventsCountFor(tokenId: Long) =
     select.count.where(_.tokenId eqs tokenId)
-      .and(_.pageId eqs pageId)
-      .and(_.startTime gte startTime)
-      .and(_.startTime lte endTime)
 
 }
