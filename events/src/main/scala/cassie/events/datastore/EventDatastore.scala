@@ -7,9 +7,11 @@ import scala.collection.mutable.{ArrayBuffer, Map}
 import scala.concurrent.duration._
 import scala.concurrent.{Future, Await}
 
+import org.joda.time.DateTime
+
 import com.websudos.phantom.dsl._
 
-import aianonymous.commons.events._
+import aianash.commons.events._
 
 import cassie.events.EventSettings
 import cassie.events.connector.EventConnector
@@ -31,55 +33,65 @@ class EventDatastore(eventConnector: EventConnector) extends EventDatabase(event
     Await.result(creation, 2 seconds)
   }
 
-  def insertEvents(eventsSession: EventsSession, eventVersion: Int): Future[Boolean] = {
-    val tokenId = eventsSession.tokenId
-    val aianId = eventsSession.aianId
-    val sessionId = eventsSession.sessionId
+  def insertEvents(eventSession: EventSession, eventVersion: Int): Future[Boolean] = {
+    val tokenId = eventSession.tokenId
+    val aianId = eventSession.aianId
+    val sessionId = eventSession.sessionId
+    val startTime = eventSession.startTime
 
-    var insertStatus = ArrayBuffer.empty[Future[Boolean]]
-
-    for(pageEvent <- eventsSession.pageEvents) {
-      val pageId = pageEvent.pageId
-      val startTime = pageEvent.startTime
-
-      val batch = pageEvent.events.flatMap(event => createInsertEvent(eventsSession, pageEvent, event, eventVersion))
-                                  .foldLeft(Batch.logged)(_ add _)
-      insertStatus +=
-        batch.future() map (_ => true) recover {
-          case ex: Exception => false
-        }
-    }
-
-    Future.sequence(insertStatus).map(_.foldLeft(true)(_ && _))
+    val batch = eventSession.events.flatMap(event => createInsertEvent(eventSession, event, eventVersion))
+                                   .foldLeft(Batch.logged)(_ add _)
+    for {
+      _ <- Sessions.insertSession(tokenId.tkuuid, startTime.getMillis, aianId.anuuid, sessionId.snuuid).future()
+      _ <- batch.future()
+    } yield true
   }
 
-  def getEvents(tokenId: Long, pageId: Long, startTime: Long, endTime: Long): Future[Seq[PageEvents]] = {
-    Events.getEventsFor(tokenId, pageId, startTime, endTime).fetch().flatMap { eventTupleList =>
-      if(!eventTupleList.isEmpty) {
-        val pageEvents = eventTupleList.foldLeft(Map.empty[(Long, Long), ArrayBuffer[TrackingEvent]]) {
-          case (m, (sid, sttime, Some(value))) =>
-            m.getOrElseUpdate((sid, sttime), ArrayBuffer.empty[TrackingEvent]) += value
-            m
-          case (m, _) => m
-        }.foldLeft(ArrayBuffer.empty[PageEvents]) {
-          case (pge, ((sid, sttime), value)) =>
-            pge += PageEvents(sid, pageId, sttime, value)
-        }
-
-        Future.successful(pageEvents)
-      } else {
-        Future.successful(Seq.empty[PageEvents])
-      }
+  def getEventSessions(tokenId: Long, startTime: Long, endTime: Long): Future[Seq[EventSession]] = {
+    for {
+      sessionList <- Sessions.getSessionsFor(tokenId, startTime, endTime).fetch()
+      if !sessionList.isEmpty
+      eventList   <- Events.getEventsFor(tokenId, startTime, endTime).fetch()
+    } yield if(!eventList.isEmpty) {
+      getEventSessionList(tokenId, sessionList, eventList)
+    } else {
+      Seq.empty[EventSession]
     }
   }
 
-  def getEventsCount(tokenId: Long, pageId: Long, startTime: Long, endTime: Long): Future[Long] =
-    Events.getEventsCountFor(tokenId, pageId, startTime, endTime).one().map(_.getOrElse(0L))
+  def getEventCount(tokenId: Long, startTime: Long, endTime: Long): Future[Long] =
+    Events.getEventCountFor(tokenId, startTime, endTime).one().map(_.getOrElse(0L))
 
-  def insertSession(tokenId: Long, pageId: Long, startTime: Long, sessionId: Long, aianId: Long): Future[Boolean] =
-    Sessions.insertSession(tokenId, pageId, startTime, sessionId, aianId).future().map(_ => true)
 
-  private def createInsertEvent(session: EventsSession, pgevents: PageEvents, event: TrackingEvent, eventVersion: Int) =
+  private def getEventSessionList(tokenId: Long, sessionList: Seq[(Long, Long, Long)], eventList: Seq[(Long, Long, Option[TrackingEvent])]) = {
+    val eventMap = eventList.foldLeft(Map.empty[(Long, Long), ArrayBuffer[TrackingEvent]]) {
+      case (m, (aianId, sessionId, Some(eventValue))) =>
+        m.getOrElseUpdate((aianId, sessionId), ArrayBuffer.empty[TrackingEvent]) += eventValue
+        m
+      case (m, _) => m
+    }
+
+    val sessionMap = sessionList.foldLeft(Map.empty[(Long, Long), Long]) {
+      case (m, (aianId, sessionId, startTime)) =>
+        m.put((aianId, sessionId), startTime)
+        m
+      case (m, _) => m
+    }
+
+    val eventSessions = eventMap.foldLeft(ArrayBuffer.empty[EventSession]) {
+      case (evs, ((aianId, sessionId), events)) =>
+        val startTimeO = sessionMap.get((aianId, sessionId))
+        startTimeO match {
+          case Some(startTime) =>
+            evs += EventSession(TokenId(tokenId), AianId(aianId), SessionId(sessionId),
+              new DateTime(startTime), events)
+          case _ => evs
+        }
+    }
+    eventSessions
+  }
+
+  private def createInsertEvent(session: EventSession, event: TrackingEvent, eventVersion: Int) =
     (event match {
       case pfv: PageFragmentView =>
         val eventId = pfv.startTime
@@ -97,12 +109,16 @@ class EventDatastore(eventConnector: EventConnector) extends EventDatabase(event
         val eventId = sc.startTime
         val eventType = TrackingEvent.codeFor(sc)
         TrackingEvent.encode(sc, eventVersion).map(v => (eventId, eventType, v))
+      case ac: Action =>
+        val eventId = ac.timeStamp
+        val eventType = TrackingEvent.codeFor(ac)
+        TrackingEvent.encode(ac, eventVersion).map(v => (eventId, eventType, v))
       case _ => None
     }).map {
       case (eventId, eventType, eventValue) =>
-        import pgevents._
-        Events.insertEvent(session.tokenId, pageId, startTime, sessionId, eventId, eventType.toInt,
-          ByteBuffer.wrap(eventValue), eventVersion)
+        import session._
+        Events.insertEvent(tokenId.tkuuid, startTime.getMillis, aianId.anuuid, sessionId.snuuid, eventId.getMillis, eventType.toInt,
+          eventVersion, ByteBuffer.wrap(eventValue))
     }
 
 }
