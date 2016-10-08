@@ -11,11 +11,9 @@ sealed class SessionsTable extends CassandraTable[Sessions, (Long, Long, Long)] 
 
   // primary key
   object tokenId extends LongColumn(this) with PartitionKey[Long]
+  object startTime extends LongColumn(this) with ClusteringOrder[Long] with Ascending
   object aianId extends LongColumn(this) with ClusteringOrder[Long] with Ascending
   object sessionId extends LongColumn(this) with ClusteringOrder[Long] with Ascending
-
-  // data
-  object startTime extends LongColumn(this)
 
   def fromRow(row: Row) = {
     (aianId(row), sessionId(row), startTime(row))
@@ -25,13 +23,15 @@ sealed class SessionsTable extends CassandraTable[Sessions, (Long, Long, Long)] 
 
 abstract class Sessions extends SessionsTable with RootConnector {
 
-  def insertSession(tokenId: Long, aianId: Long, sessionId: Long, startTime: Long) =
+  def insertSession(tokenId: Long, startTime: Long, aianId: Long, sessionId: Long) =
     insert.value(_.tokenId, tokenId)
+      .value(_.startTime, startTime)
       .value(_.aianId, aianId)
       .value(_.sessionId, sessionId)
-      .value(_.startTime, startTime)
 
-  def getSessionsFor(tokenId: Long) =
+  def getSessionsFor(tokenId: Long, startTime: Long, endTime: Long) =
     select.where(_.tokenId eqs tokenId)
+      .and(_.startTime gte startTime)
+      .and(_.startTime lte endTime)
 
 }

@@ -13,6 +13,7 @@ sealed class EventsTable extends CassandraTable[Events, (Long, Long, Option[Trac
 
   // primary key
   object tokenId extends LongColumn(this) with PartitionKey[Long]
+  object sessionStartTime extends LongColumn(this) with ClusteringOrder[Long] with Ascending
   object aianId extends LongColumn(this) with ClusteringOrder[Long] with Ascending
   object sessionId extends LongColumn(this) with ClusteringOrder[Long] with Ascending
   object eventId extends LongColumn(this) with ClusteringOrder[Long] with Ascending
@@ -35,9 +36,10 @@ sealed class EventsTable extends CassandraTable[Events, (Long, Long, Option[Trac
 
 abstract class Events extends EventsTable with RootConnector {
 
-  def insertEvent(tokenId: Long, aianId: Long, sessionId: Long, eventId: Long,
+  def insertEvent(tokenId: Long, sessionStartTime: Long, aianId: Long, sessionId: Long, eventId: Long,
     eventType: Int, eventVersion: Int, eventValue: ByteBuffer) =
     insert.value(_.tokenId, tokenId)
+      .value(_.sessionStartTime, sessionStartTime)
       .value(_.aianId, aianId)
       .value(_.sessionId, sessionId)
       .value(_.eventId, eventId)
@@ -45,10 +47,14 @@ abstract class Events extends EventsTable with RootConnector {
       .value(_.eventVersion, eventVersion)
       .value(_.eventValue, eventValue)
 
-  def getEventsFor(tokenId: Long) =
-    select.where(_.tokenId eqs tokenId)
-
-  def getEventsCountFor(tokenId: Long) =
+  def getEventCountFor(tokenId: Long, startTime: Long, endTime: Long) =
     select.count.where(_.tokenId eqs tokenId)
+      .and(_.sessionStartTime gte startTime)
+      .and(_.sessionStartTime lte endTime)
+
+  def getEventsFor(tokenId: Long, startTime: Long, endTime: Long) =
+    select.where(_.tokenId eqs tokenId)
+      .and(_.sessionStartTime gte startTime)
+      .and(_.sessionStartTime lte endTime)
 
 }
